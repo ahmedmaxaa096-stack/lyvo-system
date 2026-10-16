@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LYVO Product Importer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="container">
+  <header style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px">
+    <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;box-shadow:0 8px 20px rgba(124,92,255,.4)">L</div>
+    <div>
+      <h1 style="font-size:26px;font-weight:800;color:#fff">LYVO Product Importer</h1>
+      <p style="color:var(--muted);font-size:13.5px">تجهيز بيانات وصور المنتجات من الموقع الرسمي للبراند — تلقائيًا مع مراجعة كاملة</p>
+    </div>
+  </header>
+  <nav class="slide-nav" id="slideNav"></nav>
+  <div id="errorBox" style="display:none;background:rgba(231,82,90,.15);border:1px solid rgba(231,82,90,.5);border-radius:12px;padding:12px 16px;color:#ffb4b4;font-size:13.5px;margin-bottom:16px"></div>
+  <div id="successBox" style="display:none;background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.5);border-radius:12px;padding:12px 16px;color:#a5f0c5;font-size:13.5px;margin-bottom:16px"></div>
+
+  <!-- SLIDE 1: الإعدادات -->
+  <section class="slide card active" id="slide-1">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">⚙️</div>
+      <div><h2>الإعدادات والمدخلات</h2><p class="sub">ارفع ملف الإكسل، حدد البراند وموقعه، وأدخل أول SKU</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+      <div>
+        <label>١) ملف الإكسل (أسماء المنتجات)</label>
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.ods" />
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">يُرفع للخادم ويُحلل فورًا لعرض الشيتات والأعمدة.</p>
+      </div>
+      <div>
+        <label>اسم البراند</label>
+        <input type="text" id="brandInput" placeholder="LYVO" />
+        <label style="margin-top:6px">رابط الموقع الرسمي</label>
+        <input type="text" id="siteInput" placeholder="lyvo.com" dir="ltr" />
+        <label style="margin-top:6px">العملة الافتراضية (اختياري)</label>
+        <input type="text" id="currencyInput" placeholder="EGP" dir="ltr" maxlength="6" />
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label>أول SKU (يُزاد بمقدار 1 لكل صف تلقائيًا)</label>
+      <input type="text" id="skuInput" placeholder="LYVO-000100 أو 10000" dir="ltr" />
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+      <input type="checkbox" id="writeSkuToggle" checked style="width:18px;height:18px;accent-color:var(--primary)" />
+      <label for="writeSkuToggle" style="margin:0;font-size:13.5px;color:#d9dde6">اكتب الـ SKU على الصور (شريط أبيض أسفلها) واستخدمه باسم ملف الصورة</label>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:18px">
+      <button class="btn-primary" id="applySettingsBtn">حفظ الإعدادات</button>
+      <button class="btn-ghost" id="resetBtn">بدء مشروع جديد</button>
+    </div>
+    <span id="settingsStatus" style="color:var(--green);font-size:13px;margin-inline-start:12px"></span>
+  </section>
+
+  <!-- SLIDE 2: الشيت والأسماء -->
+  <section class="slide card" id="slide-2">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">📋</div>
+      <div><h2>الشيت وأسماء المنتجات</h2><p class="sub">اختيار الشيت وعمود اسم المنتج — مع كشف الأسماء المكررة قبل المعالجة</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px" id="sheetSelects"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+      <button class="btn-primary" id="extractBtn">استخراج الأسماء</button>
+      <span id="extractStatus" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+    <div id="duplicatesBox" style="display:none;margin-top:14px;background:rgba(244,168,64,.13);border:1px solid rgba(244,168,64,.45);border-radius:12px;padding:12px 16px;color:#ffd9a0">
+      <strong>⚠ تنبيه: توجد أسماء مكررة في الإكسل</strong>
+      <div id="duplicatesList" style="font-size:12.5px;margin-top:4px;line-height:1.7"></div>
+    </div>
+    <div id="rowsPreview" style="margin-top:16px"></div>
+  </section>
+
+  <!-- SLIDE 3: المعالجة -->
+  <section class="slide card" id="slide-3">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">🔎</div>
+      <div><h2>البحث والجمع</h2><p class="sub">البحث داخل الموقع عن كل منتج، واستخراج السعر والعملة والوصف والصورة الأساسية ورابط الصفحة</p></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn-primary" id="startProcessBtn">▶ بدء المعالجة</button>
+      <button class="btn-danger" id="cancelProcessBtn">إيقاف</button>
+      <div style="flex:1"></div>
+    </div>
+    <div class="progress-wrap" style="margin-top:12px"><div class="progress-fill" id="processFill"></div></div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px" id="processLabel">—</div>
+    <div class="stats" style="margin-top:14px" id="processStats"></div>
+    <div style="margin-top:14px">
+      <div style="font-size:14px;font-weight:700;color:#d9dde6">سجل العمليات</div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: المراجعة -->
+  <section class="slide card" id="slide-4">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">✅</div>
+      <div><h2>المراجعة والاعتماد</h2><p class="sub">عدّل البيانات والصورة، اختر من خيارات التطابق المتعددة، وأضف الرابط يدويًا عند تعذّر الجلب</p></div>
+    </div>
+    <div class="stats" style="margin-top:14px" id="reviewStats"></div>
+    <div id="reviewTable" style="margin-top:14px;overflow-x:auto"></div>
+  </section>
+
+  <!-- SLIDE 5: الصور -->
+  <section class="slide card" id="slide-5">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">🖼️</div>
+      <div><h2>الصور</h2><p class="sub">نسختان من كل صورة: أصلية ومكتوب عليها SKU — بأسماء تطابق قيم الـ SKU في الإكسل</p></div>
+    </div>
+    <div class="stats" style="margin-top:14px" id="imageStats"></div>
+    <div id="imagePreview" style="margin-top:14px"></div>
+  </section>
+
+  <!-- SLIDE 6: التصدير -->
+  <section class="slide card" id="slide-6">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:30px">📦</div>
+      <div><h2>التصدير</h2><p class="sub">Excel بالأعمدة المطلوبة + ZIP للصور مفصولة في مجلدين، مع تحقق تلقائي من تطابق SKU واسم الصورة</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:15px;font-weight:700;color:#fff">📊 ملف Excel</div>
+        <p style="color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.7">original_name · product_name · sku · price · currency · description · image_filename · image_url · product_url · status</p>
+        <button class="btn-primary" id="exportExcelBtn" style="margin-top:12px;width:100%">تنزيل Excel</button>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:15px;font-weight:700;color:#fff">🗜 ZIP الصور</div>
+        <p style="color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.7">مجلد originals للصور الأصلية و labeled للمكتوب عليها SKU — بأسماء مطابقة لقيم SKU.</p>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-primary" id="exportZipBtn">ZIP الأصلي</button>
+          <button class="btn-success" id="exportZipLabeledBtn">ZIP المكتوب</button>
+        </div>
+      </div>
+    </div>
+    <div id="exportCheck" style="display:none;margin-top:14px"></div>
+    <div id="exportResult" style="display:none;margin-top:12px;background:rgba(46,204,113,.13);border:1px solid rgba(46,204,113,.4);border-radius:12px;padding:12px 16px;color:#a5f0c5"></div>
+  </section>
+</div>
+<footer class="footer">LYVO Product Importer — المعالجة عبر خدمة خلفية (Node.js + Express + Sharp) على جهازك المحلي.</footer>
+<script src="/app.js"></script>
+</body>
+</html>
